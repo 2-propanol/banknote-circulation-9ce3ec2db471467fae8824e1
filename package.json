@@ -1,0 +1,7 @@
+{
+  "name": "folio-banknote-ledger",
+  "private": true,
+  "scripts": {
+    "check": "node --test"
+  }
+}

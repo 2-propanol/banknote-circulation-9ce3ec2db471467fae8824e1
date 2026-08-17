@@ -3,9 +3,9 @@
   "$id": "https://example.invalid/folio-ledger.schema.json",
   "title": "FOLIO private ledger export",
   "type": "object",
-  "required": ["schemaVersion", "publicSource", "privateLedger"],
+  "required": ["schemaVersion", "publicSource", "privateLedger", "privateMarket"],
   "properties": {
-    "schemaVersion": { "const": 1 },
+    "schemaVersion": { "const": 2 },
     "exportedAt": { "type": "string", "format": "date-time" },
     "publicSource": {
       "type": "object",
@@ -42,6 +42,34 @@
         },
         "additionalProperties": true
       }
+    },
+    "privateMarket": {
+      "type": "object",
+      "required": ["observations", "costs", "decisions"],
+      "properties": {
+        "observations": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "candidateId", "marketplace", "matchLevel", "soldPrice"],
+            "properties": {
+              "id": { "type": "string" },
+              "candidateId": { "type": "string" },
+              "marketplace": { "type": "string" },
+              "matchLevel": { "enum": ["exact", "close", "theme"] },
+              "soldPrice": { "type": "number", "minimum": 0 },
+              "shippingPrice": { "type": "number", "minimum": 0 },
+              "soldAt": { "type": "string" },
+              "listingUrl": { "type": "string" },
+              "recordedAt": { "type": "string" }
+            },
+            "additionalProperties": false
+          }
+        },
+        "costs": { "type": "object", "additionalProperties": { "type": "object" } },
+        "decisions": { "type": "object", "additionalProperties": { "enum": ["proposed", "accepted"] } }
+      },
+      "additionalProperties": false
     }
   },
   "additionalProperties": false
