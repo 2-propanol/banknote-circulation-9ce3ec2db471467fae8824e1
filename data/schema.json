@@ -1,37 +1,43 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://example.invalid/banknote-ledger.schema.json",
-  "title": "Banknote Circulation Ledger Export",
+  "$id": "https://example.invalid/folio-ledger.schema.json",
+  "title": "FOLIO private ledger export",
   "type": "object",
-  "required": ["schemaVersion", "banknotes"],
+  "required": ["schemaVersion", "publicSource", "privateLedger"],
   "properties": {
     "schemaVersion": { "const": 1 },
     "exportedAt": { "type": "string", "format": "date-time" },
-    "banknotes": {
+    "publicSource": {
+      "type": "object",
+      "required": ["url"],
+      "properties": {
+        "url": { "type": "string", "format": "uri" },
+        "schemaVersion": { "type": ["integer", "null"] },
+        "updatedAt": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "privateLedger": {
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["id", "country", "currency", "denomination", "quantity", "status"],
+        "required": ["id", "country", "currency", "denomination", "status"],
         "properties": {
           "id": { "type": "string" },
+          "sourceItemId": { "type": "string", "description": "World Banknote Archive items[].id used to join a private overlay" },
           "country": { "type": "string" },
-          "issuerRegime": { "type": "string" },
           "currency": { "type": "string" },
           "denomination": { "type": "string" },
           "year": { "type": "string" },
           "catalogNo": { "type": "string" },
-          "serialNo": { "type": "string" },
-          "condition": { "enum": ["UNC", "AU", "XF", "VF", "F", "G"] },
+          "condition": { "type": "string" },
           "quantity": { "type": "integer", "minimum": 0 },
-          "acquiredAt": { "type": "string", "format": "date" },
+          "status": { "type": "string" },
           "acquisitionCost": { "type": "number", "minimum": 0 },
-          "acquisitionPurpose": { "enum": ["自己コレクション", "セット購入に伴う余剰", "交換", "贈与等", "販売を予定した取得"] },
-          "status": { "enum": ["Collection", "Reserve", "Sale Candidate", "Listed", "Sold"] },
+          "acquisitionPurpose": { "type": "string" },
           "salePrice": { "type": "number", "minimum": 0 },
           "feesShipping": { "type": "number", "minimum": 0 },
           "soldAt": { "type": "string" },
-          "imageFront": { "type": "string" },
-          "imageBack": { "type": "string" },
           "privateMemo": { "type": "string" }
         },
         "additionalProperties": true

@@ -1,38 +1,99 @@
-const STORAGE_KEY="banknote-circulation-ledger-v1";
-const demoNotes=[
-{id:"demo-001",country:"フランス",currency:"フラン",denomination:"50",year:"1992",catalogNo:"P-157",condition:"VF",quantity:1,status:"Collection",acquisitionCost:680,acquisitionPurpose:"自己コレクション",salePrice:0,feesShipping:0,soldAt:""},
-{id:"demo-002",country:"ユーゴスラビア",currency:"ディナール",denomination:"500000000000",year:"1993",catalogNo:"P-137",condition:"XF",quantity:2,status:"Sale Candidate",acquisitionCost:420,acquisitionPurpose:"セット購入に伴う余剰",salePrice:0,feesShipping:0,soldAt:""},
-{id:"demo-003",country:"ドイツ民主共和国",currency:"マルク",denomination:"20",year:"1975",catalogNo:"P-29",condition:"VF",quantity:1,status:"Collection",acquisitionCost:560,acquisitionPurpose:"自己コレクション",salePrice:0,feesShipping:0,soldAt:""},
-{id:"demo-004",country:"モンゴル",currency:"トゥグルグ",denomination:"10",year:"1981",catalogNo:"P-43",condition:"UNC",quantity:1,status:"Listed",acquisitionCost:260,acquisitionPurpose:"セット購入に伴う余剰",salePrice:800,feesShipping:0,soldAt:""},
-{id:"demo-005",country:"ブラジル",currency:"クルゼイロ",denomination:"1000",year:"1990",catalogNo:"P-228",condition:"XF",quantity:0,status:"Sold",acquisitionCost:350,acquisitionPurpose:"セット購入に伴う余剰",salePrice:1200,feesShipping:310,soldAt:new Date().getFullYear()+"-04-18"}];
-let notes=loadNotes();const yen=new Intl.NumberFormat("ja-JP",{style:"currency",currency:"JPY",maximumFractionDigits:0});
-const $=id=>document.getElementById(id);const palette=[["#235f62","#318f82"],["#5f3d78","#9672bc"],["#6b4b2b","#b7813c"],["#25496b","#3e81ab"],["#5c3440","#a45c67"]];
-function loadNotes(){try{const v=JSON.parse(localStorage.getItem(STORAGE_KEY));return Array.isArray(v)?v:structuredClone(demoNotes)}catch{return structuredClone(demoNotes)}}
-function save(){localStorage.setItem(STORAGE_KEY,JSON.stringify(notes));render()}
-function esc(v){return String(v??"").replace(/[&<>'"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;",'"':"&quot;"}[c]))}
-function name(n){return `${n.country} ${n.denomination} ${n.currency}`}
-function colors(n){return palette[Math.abs([...n.id].reduce((a,c)=>a+c.charCodeAt(0),0))%palette.length]}
-function visual(n){const [a,b]=colors(n);return `<div class="note-visual" style="--note-a:${a};--note-b:${b}"><small>${esc(n.country)} · ${esc(n.catalogNo||"UNLISTED")}</small><b>${esc(n.denomination)}</b></div>`}
-function setText(id,v){const e=$(id);if(e)e.textContent=v}
-function filtered(){const q=$("search").value.trim().toLowerCase(),f=$("status-filter").value;return notes.filter(n=>(!q||[n.country,n.currency,n.denomination,n.year,n.catalogNo].join(" ").toLowerCase().includes(q))&&(!f||n.status===f))}
-function render(){
- const active=notes.filter(n=>n.status!=="Sold"),surplus=notes.filter(n=>["Sale Candidate","Listed"].includes(n.status)),year=String(new Date().getFullYear()),sold=notes.filter(n=>n.status==="Sold"&&String(n.soldAt).startsWith(year));
- const sales=sold.reduce((a,n)=>a+(+n.salePrice||0),0),cost=sold.reduce((a,n)=>a+(+n.feesShipping||0),0),net=sales-cost;
- const types=new Set(active.map(n=>[n.country,n.currency,n.denomination,n.year,n.catalogNo].join("|"))).size,qty=notes.reduce((a,n)=>a+(+n.quantity||0),0);
- setText("metric-types",types);setText("metric-quantity",qty);setText("metric-surplus",notes.filter(n=>n.status==="Sale Candidate").length);setText("metric-recovery",yen.format(net));setText("nav-collection-count",types);setText("nav-surplus-count",surplus.length);
- ["current-year","records-year"].forEach(id=>setText(id,year));["hero-net-total","hero-recovery-total","net-total"].forEach(id=>setText(id,yen.format(net)));["hero-sales-total","sales-total"].forEach(id=>setText(id,yen.format(sales)));["hero-cost-total","cost-total"].forEach(id=>setText(id,yen.format(cost)));
- $("recent-grid").innerHTML=active.slice(0,3).map(n=>`<article class="recent-card">${visual(n)}<div class="recent-info"><b>${esc(name(n))}</b><span>${esc(n.year)} · ${esc(n.condition)}</span></div></article>`).join("");
- const shown=filtered();$("collection-grid").innerHTML=shown.map(n=>`<article class="note-card">${visual(n)}<div class="note-info"><h3>${esc(name(n))}</h3><p>${esc(n.year||"年不明")} · ${esc(n.catalogNo||"未同定")}</p><div class="note-meta"><div><span>状態 / 枚数</span><b>${esc(n.condition)} · ${n.quantity}枚</b></div><div><span>取得原価</span><b>${yen.format(n.acquisitionCost||0)}</b></div></div><div class="note-actions"><span class="status">${esc(n.status)}</span><button class="delete" data-delete="${esc(n.id)}">削除</button></div></div></article>`).join("");$("empty-state").hidden=shown.length>0;
- setText("surplus-count",surplus.length);setText("pipeline-candidate",notes.filter(n=>n.status==="Sale Candidate").length);setText("pipeline-listed",notes.filter(n=>n.status==="Listed").length);setText("pipeline-sold",notes.filter(n=>n.status==="Sold").length);
- $("surplus-list").innerHTML=surplus.length?surplus.map(n=>`<article class="surplus-item">${visual(n)}<div><b>${esc(name(n))}</b><small>${esc(n.catalogNo||"未同定")} · ${esc(n.condition)} · ${n.quantity}枚</small></div><span class="status">${esc(n.status)}</span></article>`).join(""):'<p class="empty-state">現在、対応が必要な紙幣はありません。</p>';
+const PUBLIC_SITE="https://rune-markar.github.io/folio-7c4e19a2/";
+const PUBLIC_DATA_URL=new URL("data/collection.json",PUBLIC_SITE).href;
+const PRIVATE_KEY="banknote-circulation-ledger-v1";
+const PUBLIC_CACHE_KEY="folio-public-collection-cache-v1";
+let publicDatabase={schemaVersion:null,updatedAt:"",items:[]};
+let privateNotes=loadPrivateNotes();
+const yen=new Intl.NumberFormat("ja-JP",{style:"currency",currency:"JPY",maximumFractionDigits:0});
+const $=id=>document.getElementById(id);
+const palette=[["#235f62","#318f82"],["#5f3d78","#9672bc"],["#6b4b2b","#b7813c"],["#25496b","#3e81ab"],["#5c3440","#a45c67"]];
+
+function loadPrivateNotes(){
+  try{
+    const value=JSON.parse(localStorage.getItem(PRIVATE_KEY));
+    return Array.isArray(value)?value.filter(note=>!String(note.id).startsWith("demo-")):[];
+  }catch{return []}
 }
-function showView(view){const safe=["dashboard","collection","surplus","records"].includes(view)?view:"dashboard";document.querySelectorAll("[data-view]").forEach(e=>e.classList.toggle("active",e.dataset.view===safe));document.querySelectorAll("[data-view-link]").forEach(e=>e.classList.toggle("active",e.dataset.viewLink===safe));if(location.hash!==`#${safe}`)history.replaceState(null,"",`#${safe}`);scrollTo({top:0,behavior:"smooth"})}
-document.addEventListener("click",e=>{const link=e.target.closest("[data-view-link]");if(link){e.preventDefault();showView(link.dataset.viewLink)}const del=e.target.closest("[data-delete]");if(del){const n=notes.find(x=>x.id===del.dataset.delete);if(n&&confirm(`${name(n)} を削除しますか？`)){notes=notes.filter(x=>x.id!==n.id);save();toast("台帳から削除しました")}}});
-document.querySelectorAll("[data-open-register]").forEach(b=>b.addEventListener("click",()=>$("register-dialog").showModal()));document.querySelector("[data-close-register]").addEventListener("click",()=>$("register-dialog").close());
-$("register-form").addEventListener("submit",e=>{e.preventDefault();const f=new FormData(e.currentTarget);notes.unshift({id:crypto.randomUUID(),country:f.get("country"),currency:f.get("currency"),denomination:f.get("denomination"),year:f.get("year"),catalogNo:f.get("catalogNo"),condition:f.get("condition"),quantity:+f.get("quantity"),status:f.get("status"),acquisitionCost:+f.get("acquisitionCost"),acquisitionPurpose:f.get("acquisitionPurpose"),salePrice:0,feesShipping:0,soldAt:""});save();e.currentTarget.reset();$("register-dialog").close();showView("collection");toast("紙幣を登録しました")});
+function savePrivate(){localStorage.setItem(PRIVATE_KEY,JSON.stringify(privateNotes));render()}
+function esc(value){return String(value??"").replace(/[&<>'"]/g,char=>({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;",'"':"&quot;"}[char]))}
+function noteName(note){return `${note.country} ${note.denomination} ${note.currency}`}
+function colors(note){return palette[Math.abs([...note.id].reduce((sum,char)=>sum+char.charCodeAt(0),0))%palette.length]}
+function imageUrl(path){if(!path)return "";try{return new URL(path,PUBLIC_SITE).href}catch{return ""}}
+function visual(note){
+  const [a,b]=colors(note),front=imageUrl(note.imageFront);
+  return `<div class="note-visual${front?" has-image":""}" style="--note-a:${a};--note-b:${b}">${front?`<img src="${esc(front)}" alt="" loading="lazy">`:""}<small>${esc(note.country)} · ${esc(note.catalogNo||"UNLISTED")}</small><b>${esc(note.denomination)}</b></div>`;
+}
+function normalizePublic(item){
+  const duplicateQty=Number(item.duplicateQty||0),collectionQty=Number(item.collectionQty||0);
+  return {id:item.id,source:"world-banknote-archive",country:item.country||"",region:item.region||"",currency:item.currency||"",denomination:item.denomination||"",year:item.year||"",series:item.series||"",catalogNo:item.catalogNumber||"",condition:item.condition||"未評価",quantity:collectionQty+duplicateQty,collectionQty,duplicateQty,status:duplicateQty>0?"Sale Candidate":"Collection",acquisitionCost:0,acquisitionPurpose:"公開所蔵データ",imageFront:item.images?.front||"",imageBack:item.images?.back||"",story:item.story||""};
+}
+function allNotes(){return [...publicDatabase.items.map(normalizePublic),...privateNotes]}
+function setText(id,value){const element=$(id);if(element)element.textContent=value}
+function filtered(){
+  const query=$("search").value.trim().toLowerCase(),status=$("status-filter").value;
+  return allNotes().filter(note=>(!query||[note.country,note.region,note.currency,note.denomination,note.year,note.catalogNo,note.series].join(" ").toLowerCase().includes(query))&&(!status||note.status===status));
+}
+async function syncPublicCollection(){
+  const state=$("sync-state");state.className="";state.innerHTML="<i></i> 同期中";setText("sync-updated","公開サイトを確認しています");
+  try{
+    const response=await fetch(PUBLIC_DATA_URL,{cache:"no-store"});
+    if(!response.ok)throw new Error(`HTTP ${response.status}`);
+    const data=await response.json();
+    if(!Array.isArray(data.items))throw new Error("items missing");
+    publicDatabase=data;
+    try{localStorage.setItem(PUBLIC_CACHE_KEY,JSON.stringify(data))}catch{}
+    state.innerHTML="<i></i> 同期済み";
+    setText("sync-updated",`schema v${data.schemaVersion} · 更新 ${data.updatedAt||"不明"}`);
+  }catch(error){
+    try{const cached=JSON.parse(localStorage.getItem(PUBLIC_CACHE_KEY));if(Array.isArray(cached.items))publicDatabase=cached}catch{}
+    state.className="error";state.innerHTML="<i></i> 同期エラー";
+    setText("sync-updated",publicDatabase.items.length?"前回取得データを表示中":"公開データを取得できません");
+  }
+  render();
+}
+function render(){
+  const notes=allNotes(),publicItems=publicDatabase.items.map(normalizePublic),duplicateItems=publicItems.filter(note=>note.duplicateQty>0);
+  const year=String(new Date().getFullYear()),sold=privateNotes.filter(note=>note.status==="Sold"&&String(note.soldAt||"").startsWith(year));
+  const sales=sold.reduce((sum,note)=>sum+(Number(note.salePrice)||0),0),cost=sold.reduce((sum,note)=>sum+(Number(note.feesShipping)||0),0),net=sales-cost;
+  const totalPieces=publicItems.reduce((sum,note)=>sum+note.quantity,0);
+  const duplicatePieces=publicItems.reduce((sum,note)=>sum+note.duplicateQty,0);
+  setText("metric-types",publicItems.length);setText("metric-quantity",totalPieces);setText("metric-surplus",duplicatePieces);setText("metric-recovery",yen.format(net));setText("nav-collection-count",publicItems.length);setText("nav-surplus-count",duplicatePieces);
+  ["current-year","records-year"].forEach(id=>setText(id,year));["hero-net-total","hero-recovery-total","net-total"].forEach(id=>setText(id,yen.format(net)));["hero-sales-total","sales-total"].forEach(id=>setText(id,yen.format(sales)));["hero-cost-total","cost-total"].forEach(id=>setText(id,yen.format(cost)));
+  $("recent-grid").innerHTML=(publicItems.length?publicItems:privateNotes).slice(0,3).map(note=>`<article class="recent-card">${visual(note)}<div class="recent-info"><b>${esc(noteName(note))}</b><span>${esc(note.year)} · ${esc(note.condition)}</span></div></article>`).join("");
+  const shown=filtered();
+  $("collection-grid").innerHTML=shown.map(note=>`<article class="note-card">${visual(note)}<div class="note-info"><h3>${esc(noteName(note))}</h3><p>${esc(note.year||"年不明")} · ${esc(note.catalogNo||"未同定")}</p><div class="note-meta"><div><span>状態 / 枚数</span><b>${esc(note.condition)} · ${note.quantity}枚</b></div><div><span>重複</span><b>${note.duplicateQty||0}枚</b></div></div><div class="note-actions"><span class="status">${note.source==="world-banknote-archive"?"WBA · ":""}${esc(note.status)}</span>${note.source==="world-banknote-archive"?`<a class="delete" href="${PUBLIC_SITE}">参照 ↗</a>`:`<button class="delete" data-delete="${esc(note.id)}">削除</button>`}</div></div></article>`).join("");
+  $("empty-state").hidden=shown.length>0;
+  setText("surplus-count",duplicateItems.length);setText("pipeline-candidate",duplicatePieces);setText("pipeline-listed",privateNotes.filter(note=>note.status==="Listed").length);setText("pipeline-sold",privateNotes.filter(note=>note.status==="Sold").length);
+  $("surplus-list").innerHTML=duplicateItems.length?duplicateItems.map(note=>`<article class="surplus-item">${visual(note)}<div><b>${esc(noteName(note))}</b><small>${esc(note.catalogNo||"未同定")} · 本蔵${note.collectionQty}枚 + 重複${note.duplicateQty}枚</small></div><span class="status">WBA · DUPLICATE</span></article>`).join(""):'<p class="empty-state">公開データ上の重複はありません。</p>';
+}
+function showView(view){
+  const safe=["dashboard","collection","surplus","records"].includes(view)?view:"dashboard";
+  document.querySelectorAll("[data-view]").forEach(element=>element.classList.toggle("active",element.dataset.view===safe));
+  document.querySelectorAll("[data-view-link]").forEach(element=>element.classList.toggle("active",element.dataset.viewLink===safe));
+  if(location.hash!==`#${safe}`)history.replaceState(null,"",`#${safe}`);
+  scrollTo({top:0,behavior:"smooth"});
+}
+function toast(message){$("toast").textContent=message;$("toast").classList.add("show");clearTimeout(toast.timer);toast.timer=setTimeout(()=>$("toast").classList.remove("show"),2000)}
+
+document.addEventListener("click",event=>{
+  const link=event.target.closest("[data-view-link]");if(link){event.preventDefault();showView(link.dataset.viewLink)}
+  const button=event.target.closest("[data-delete]");if(button){const note=privateNotes.find(item=>item.id===button.dataset.delete);if(note&&confirm(`${noteName(note)} を削除しますか？`)){privateNotes=privateNotes.filter(item=>item.id!==note.id);savePrivate();toast("ローカル登録を削除しました")}}
+});
+document.querySelectorAll("[data-open-register]").forEach(button=>button.addEventListener("click",()=>$("register-dialog").showModal()));
+document.querySelector("[data-close-register]").addEventListener("click",()=>$("register-dialog").close());
+$("register-form").addEventListener("submit",event=>{
+  event.preventDefault();const form=new FormData(event.currentTarget);
+  privateNotes.unshift({id:`local-${crypto.randomUUID()}`,source:"local",country:form.get("country"),currency:form.get("currency"),denomination:form.get("denomination"),year:form.get("year"),catalogNo:form.get("catalogNo"),condition:form.get("condition"),quantity:Number(form.get("quantity")),collectionQty:Number(form.get("quantity")),duplicateQty:0,status:"Local Draft",acquisitionCost:Number(form.get("acquisitionCost")),acquisitionPurpose:form.get("acquisitionPurpose"),salePrice:0,feesShipping:0,soldAt:""});
+  savePrivate();event.currentTarget.reset();$("register-dialog").close();showView("collection");toast("ローカル下書きとして登録しました");
+});
 ["search","status-filter"].forEach(id=>$(id).addEventListener("input",render));
-function toast(m){$("toast").textContent=m;$("toast").classList.add("show");clearTimeout(toast.t);toast.t=setTimeout(()=>$("toast").classList.remove("show"),2000)}
-$("export-data").addEventListener("click",()=>{const blob=new Blob([JSON.stringify({schemaVersion:1,exportedAt:new Date().toISOString(),banknotes:notes},null,2)],{type:"application/json"}),url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download=`banknote-ledger-${new Date().toISOString().slice(0,10)}.json`;a.click();URL.revokeObjectURL(url);toast("JSONを書き出しました")});
-$("import-data").addEventListener("change",async e=>{try{const v=JSON.parse(await e.target.files[0].text()),list=Array.isArray(v)?v:v.banknotes;if(!Array.isArray(list))throw 0;notes=list;save();toast("JSONを読み込みました")}catch{alert("読み込める台帳JSONではありません。")}e.target.value=""});
-$("reset-demo").addEventListener("click",()=>{if(confirm("入力内容を消去してデモへ戻しますか？")){notes=structuredClone(demoNotes);save();toast("デモへ戻しました")}});
-addEventListener("hashchange",()=>showView(location.hash.slice(1)));showView(location.hash.slice(1));render();
+$("sync-now").addEventListener("click",syncPublicCollection);
+$("export-data").addEventListener("click",()=>{
+  const payload={schemaVersion:1,exportedAt:new Date().toISOString(),publicSource:{url:PUBLIC_DATA_URL,schemaVersion:publicDatabase.schemaVersion,updatedAt:publicDatabase.updatedAt},privateLedger:privateNotes};
+  const blob=new Blob([JSON.stringify(payload,null,2)],{type:"application/json"}),url=URL.createObjectURL(blob),anchor=document.createElement("a");anchor.href=url;anchor.download=`folio-ledger-${new Date().toISOString().slice(0,10)}.json`;anchor.click();URL.revokeObjectURL(url);toast("連携情報と私有台帳を書き出しました");
+});
+$("import-data").addEventListener("change",async event=>{try{const data=JSON.parse(await event.target.files[0].text()),list=Array.isArray(data)?data:data.privateLedger||data.banknotes;if(!Array.isArray(list))throw new Error();privateNotes=list.filter(note=>!String(note.id).startsWith("demo-"));savePrivate();toast("私有台帳を読み込みました")}catch{alert("読み込めるFOLIO台帳JSONではありません。")}event.target.value=""});
+$("reset-demo").textContent="ローカル下書きを消去";
+$("reset-demo").addEventListener("click",()=>{if(confirm("ローカル下書きと私有台帳を消去しますか？")){privateNotes=[];savePrivate();toast("ローカルデータを消去しました")}});
+addEventListener("hashchange",()=>showView(location.hash.slice(1)));
+showView(location.hash.slice(1));render();syncPublicCollection();
