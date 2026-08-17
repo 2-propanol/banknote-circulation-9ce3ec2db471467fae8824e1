@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <meta name="theme-color" content="#14352d">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='32' fill='%2314352d'/%3E%3Ctext x='32' y='43' text-anchor='middle' font-size='34' fill='white'%3E巡%3C/text%3E%3C/svg%3E">
+  <title>紙幣循環台帳</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="#dashboard" aria-label="紙幣循環台帳 ホーム">
+      <span class="brand-mark" aria-hidden="true">巡</span>
+      <span><b>紙幣循環台帳</b><small>COLLECT · COMPARE · CIRCULATE</small></span>
+    </a>
+    <div class="header-actions">
+      <span class="local-badge"><span aria-hidden="true">●</span> この端末だけに保存</span>
+      <button class="button button-primary" type="button" data-open-register>＋ 紙幣を登録</button>
+    </div>
+  </header>
+
+  <nav class="primary-nav" aria-label="主要メニュー">
+    <a href="#dashboard" data-nav="dashboard">概要</a>
+    <a href="#collection" data-nav="collection">所蔵</a>
+    <a href="#surplus" data-nav="surplus">余剰・出品</a>
+    <a href="#records" data-nav="records">収支</a>
+  </nav>
+
+  <main>
+    <section class="hero" id="dashboard">
+      <div>
+        <p class="eyebrow">PERSONAL BANKNOTE CIRCULATION</p>
+        <h1>収集の歓びを、<br><em>次の一枚</em>へつなぐ。</h1>
+        <p class="hero-copy">所蔵を中心に、重複の比較、余剰の出品、回収資金までをひとつの流れで管理します。</p>
+      </div>
+      <div class="cycle-card" aria-label="運用サイクル">
+        <span>収集</span><i>→</i><span>登録</span><i>→</i><span>比較</span><i>→</i><span>余剰</span><i>→</i><span>還流</span>
+      </div>
+    </section>
+
+    <section class="privacy-note" aria-label="プライバシー説明">
+      <b>公開ページに個人台帳を置かない設計です。</b>
+      <span>入力した取得原価・売価・メモはブラウザのローカルストレージにのみ保存され、サーバーへ送信されません。</span>
+    </section>
+
+    <section class="metric-grid" aria-label="集計">
+      <article><span>所蔵種類</span><strong id="metric-types">0</strong><small>types</small></article>
+      <article><span>総保有枚数</span><strong id="metric-quantity">0</strong><small>notes</small></article>
+      <article><span>余剰候補</span><strong id="metric-surplus">0</strong><small>candidates</small></article>
+      <article><span>出品中</span><strong id="metric-listed">0</strong><small>listed</small></article>
+      <article class="metric-accent"><span>今年の純回収</span><strong id="metric-recovery">¥0</strong><small>reusable budget</small></article>
+    </section>
+
+    <section class="workspace" id="collection">
+      <div class="section-heading">
+        <div><p class="eyebrow">COLLECTION LEDGER</p><h2>紙幣台帳</h2></div>
+        <div class="toolbar">
+          <label class="search"><span class="sr-only">台帳を検索</span><input id="search" type="search" placeholder="国・通貨・カタログ番号で検索"></label>
+          <label><span class="sr-only">ステータス</span><select id="status-filter"><option value="">すべての状態</option><option>Collection</option><option>Reserve</option><option>Sale Candidate</option><option>Listed</option><option>Sold</option></select></label>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>紙幣</th><th>識別情報</th><th>状態</th><th>枚数</th><th>取得原価</th><th>操作</th></tr></thead>
+          <tbody id="ledger-body"></tbody>
+        </table>
+      </div>
+      <div class="mobile-ledger" id="mobile-ledger"></div>
+      <p class="empty-state" id="empty-state" hidden>条件に一致する紙幣はありません。</p>
+    </section>
+
+    <section class="split-grid" id="surplus">
+      <article class="panel">
+        <div class="section-heading"><div><p class="eyebrow">NEXT ACTION</p><h2>余剰・出品候補</h2></div><span class="count-pill" id="surplus-count">0件</span></div>
+        <div id="surplus-list" class="action-list"></div>
+      </article>
+      <article class="panel" id="records">
+        <div class="section-heading"><div><p class="eyebrow">CASH FLOW</p><h2>回収の見える化</h2></div></div>
+        <div class="formula"><span>売価</span><i>−</i><span>手数料・送料</span><i>＝</i><b>純回収額</b></div>
+        <dl class="money-summary">
+          <div><dt>今年の売上</dt><dd id="sales-total">¥0</dd></div>
+          <div><dt>手数料・送料</dt><dd id="cost-total">¥0</dd></div>
+          <div class="total"><dt>次の収集へ使える回収額</dt><dd id="net-total">¥0</dd></div>
+        </dl>
+      </article>
+    </section>
+
+    <section class="data-tools">
+      <div><p class="eyebrow">DATA OWNERSHIP</p><h2>データは手元に</h2><p>JSONバックアップを書き出して、別の端末で復元できます。公開URLを知る人に台帳が共有されることはありません。</p></div>
+      <div class="tool-actions"><button class="button" id="export-data" type="button">JSONを書き出す</button><label class="button" for="import-data">JSONを読み込む</label><input id="import-data" type="file" accept="application/json" hidden><button class="text-button" id="reset-demo" type="button">デモへ戻す</button></div>
+    </section>
+  </main>
+
+  <footer><span>紙幣循環台帳 — personal collection ledger</span><a href="https://rune-markar.github.io/folio-7c4e19a2/">公開コレクションを見る ↗</a></footer>
+
+  <dialog id="register-dialog">
+    <form method="dialog" id="register-form">
+      <div class="dialog-heading"><div><p class="eyebrow">NEW BANKNOTE</p><h2>紙幣を登録</h2></div><button class="icon-button" value="cancel" aria-label="閉じる">×</button></div>
+      <p class="form-note">すべてこの端末内に保存されます。AIによる同定は行わず、入力内容をそのまま登録します。</p>
+      <div class="form-grid">
+        <label>国・地域<input name="country" required placeholder="例：フランス"></label>
+        <label>通貨<input name="currency" required placeholder="例：フラン"></label>
+        <label>額面<input name="denomination" required placeholder="例：50"></label>
+        <label>発行年<input name="year" inputmode="numeric" placeholder="例：1992"></label>
+        <label>カタログ番号<input name="catalogNo" placeholder="例：P-157"></label>
+        <label>状態<select name="condition"><option>UNC</option><option>AU</option><option>XF</option><option>VF</option><option>F</option><option>G</option></select></label>
+        <label>枚数<input name="quantity" type="number" min="1" value="1" required></label>
+        <label>ステータス<select name="status"><option>Collection</option><option>Reserve</option><option>Sale Candidate</option><option>Listed</option><option>Sold</option></select></label>
+        <label>取得原価（円）<input name="acquisitionCost" type="number" min="0" value="0"></label>
+        <label>取得目的<select name="acquisitionPurpose"><option>自己コレクション</option><option>セット購入に伴う余剰</option><option>交換</option><option>贈与等</option><option>販売を予定した取得</option></select></label>
+      </div>
+      <div class="dialog-actions"><button class="button" value="cancel" type="button" data-close-register>キャンセル</button><button class="button button-primary" value="default" type="submit">台帳へ登録</button></div>
+    </form>
+  </dialog>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script src="app.js" defer></script>
+</body>
+</html>
